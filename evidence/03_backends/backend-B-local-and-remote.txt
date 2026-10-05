@@ -1,0 +1,68 @@
+=== Backend B local test: Mon Oct  5 21:23:43 IST 2026 ===
+--- GET / ---
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.12.4
+Date: Mon, 05 Oct 2026 15:53:43 GMT
+Content-Type: application/json
+X-Backend: B
+Cache-Control: public, max-age=60
+ETag: "phase1-B-v1"
+Content-Length: 93
+
+{
+  "service": "private-network-phase1",
+  "backend": "B",
+  "status": "ok",
+  "path": "/"
+}
+--- GET /api/status ---
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.12.4
+Date: Mon, 05 Oct 2026 15:53:43 GMT
+Content-Type: application/json
+X-Backend: B
+Cache-Control: public, max-age=60
+ETag: "phase1-B-v1"
+Content-Length: 103
+
+{
+  "service": "private-network-phase1",
+  "backend": "B",
+  "status": "ok",
+  "path": "/api/status"
+}
+--- GET /does-not-exist ---
+HTTP/1.0 404 Not Found
+Server: BaseHTTP/0.6 Python/3.12.4
+Date: Mon, 05 Oct 2026 15:53:43 GMT
+Connection: close
+Content-Type: text/html;charset=utf-8
+Content-Length: 330
+
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <title>Error response</title>
+    </head>
+    <body>
+        <h1>Error response</h1>
+        <p>Error code: 404</p>
+        <p>Message: Not Found.</p>
+        <p>Error code explanation: 404 - Nothing matches the given URI.</p>
+    </body>
+</html>
+
+=== Remote test from another Mac (primemeridiansystems@Primes-MacBook-Pro) ===
+Command: curl -sS -D - http://10.7.21.130:3002/api/status ; nc -vz 10.7.21.130 3002
+Result: HTTP/1.0 200 OK, X-Backend: B, Cache-Control: public, max-age=60, ETag: "phase1-B-v1"
+Body: {"service":"private-network-phase1","backend":"B","status":"ok","path":"/api/status"}
+nc: Connection to 10.7.21.130 port 3002 [tcp/exlm-agent] succeeded!
+Tested at: Mon, 05 Oct 2026 15:55:13 GMT
+
+=== Remote test from Mac 2 (Sudeshhna, edge/nginx machine) ===
+Command: curl -sS -D - http://10.7.21.130:3002/api/status ; nc -vz 10.7.21.130 3002
+Result: HTTP/1.0 200 OK, X-Backend: B, Cache-Control: public, max-age=60, ETag: "phase1-B-v1"
+Body: {"service":"private-network-phase1","backend":"B","status":"ok","path":"/api/status"}
+nc: 10.7.21.130 3002 (exlm-agent) open
+Tested at: Mon, 05 Oct 2026 19:12:42 GMT

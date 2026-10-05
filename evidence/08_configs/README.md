@@ -1,0 +1,1 @@
+Configuration files live at the repository root: [`dns/dnsmasq.conf`](../../dns/dnsmasq.conf), [`nginx/nginx.conf`](../../nginx/nginx.conf), [`tls/server-san.cnf`](../../tls/server-san.cnf), [`backend-a/`](../../backend-a), [`backend-b/`](../../backend-b).

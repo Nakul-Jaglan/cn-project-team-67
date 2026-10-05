@@ -1,0 +1,197 @@
+PHASE 1 EVIDENCE INDEX - Private Network Service Platform - Team 67
+Maintained by: Puneet (Mac 4)
+Session: 2026-10-05 / 2026-10-06 (IST)
+Paths are relative to this evidence/ folder unless they start with ../
+
+Addresses: DNS Mac 1 = 10.7.17.54 | Edge Mac 2 = 10.3.1.179 | Backend A Mac 3 = 10.7.15.25 | Backend B Mac 4 = 10.7.21.130
+Names: app.team67.test, api.team67.test -> 10.3.1.179 | HTTPS port 8443
+
+=====================================================================
+00_architecture
+=====================================================================
+
+Evidence item: Architecture, topology, request flow
+File: ../docs/architecture.md
+Produced by: Team
+Command/filter: n/a (document)
+Expected result: four-machine topology, request flow with protocol layers
+What it proves: the team's design and the path a request takes
+
+Evidence item: IP and service table
+File: ../docs/ip-service-table.md
+Produced by: Team
+Command/filter: n/a (document)
+Expected result: machine, owner, IP, port, protocol for every service
+What it proves: agreed addressing used in every config and transcript
+
+=====================================================================
+01_lan
+=====================================================================
+
+Evidence item: LAN inventory and pairwise reachability
+File: 01_lan/ (PENDING)
+Produced by: Nakul, with all four Macs
+Command/filter: ipconfig getifaddr en0 ; networksetup -getinfo "Wi-Fi" ; ping -c 3 <other Mac IPs>
+Expected result: four stable IPs, 0% loss between every pair
+What it proves: IP-layer reachability before any service is tested
+
+=====================================================================
+02_dns
+=====================================================================
+
+Evidence item: DNS query and answer (both names)
+File: 02_dns/dig-client-to-mac1.txt
+Produced by: Puneet (client Mac 4), DNS server by Nakul
+Command/filter: networksetup -getdnsservers "Wi-Fi" ; dig app.team67.test ; dig api.team67.test
+Expected result: NOERROR, answer 10.3.1.179, SERVER 10.7.17.54#53
+What it proves: name resolution through the team DNS works before HTTPS begins
+
+=====================================================================
+03_backends
+=====================================================================
+
+Evidence item: Backend B local and remote tests
+File: 03_backends/backend-B-local-and-remote.txt
+Produced by: Puneet (remote tests run from two other Macs, one of them the edge Mac 2)
+Command/filter: curl -sS -D - http://10.7.21.130:3002/api/status ; nc -vz 10.7.21.130 3002
+Expected result: 200 OK, X-Backend: B, JSON backend=B, TCP port open; 404 on unknown path
+What it proves: Backend B listens on the LAN and is reachable from other Macs
+
+Evidence item: Backend B server log
+File: 03_backends/backend-B-server-log.txt
+Produced by: Puneet
+Command/filter: BACKEND_ID=B PORT=3002 python3 app.py | tee backend-B.log
+Expected result: listening on 0.0.0.0:3002; requests arriving from 10.3.1.179
+What it proves: requests reach B from the nginx edge, not from the client directly
+
+Evidence item: Backend A local and remote tests
+File: 03_backends/backend-A-local-and-remote.txt (PENDING)
+Produced by: Neelanshu
+Command/filter: curl -sS -D - http://10.7.15.25:3001/api/status ; nc -vz 10.7.15.25 3001
+Expected result: 200 OK, X-Backend: A, JSON backend=A, TCP port open
+What it proves: Backend A listens on the LAN and is reachable from other Macs
+
+=====================================================================
+04_nginx_tls
+=====================================================================
+
+Evidence item: Trusted HTTPS transcript
+File: 04_nginx_tls/curl-v-tls-transcript.txt
+Produced by: Puneet (edge by Sudeshhna)
+Command/filter: curl -v https://app.team67.test:8443/api/status   (no -k)
+Expected result: "SSL certificate verify ok", SAN matches, issuer Team67 Phase1 Local CA, HTTP 200
+What it proves: TLS identity of the edge is trusted through the team CA
+
+Evidence item: Load balancing A and B
+File: 04_nginx_tls/load-balance-A-B-run1-from-mac4.txt ; 04_nginx_tls/load-balance-A-B-run2-sudeshhna.txt
+Produced by: Puneet ; Sudeshhna
+Command/filter: 10 repeated curl requests to https://app.team67.test:8443/api/status, print X-Backend
+Expected result: both A and B appear, alternating
+What it proves: nginx distributes requests round-robin across both backends
+
+Evidence item: TLS certificates and setup notes
+File: ../tls/README.md ; ../tls/certs/phase1-ca.crt ; ../tls/certs/app.team67.test.crt
+Produced by: Sudeshhna
+Command/filter: openssl verify -CAfile phase1-ca.crt app.team67.test.crt
+Expected result: OK; SAN = app.team67.test, api.team67.test
+What it proves: server certificate chains to the team CA and covers both names
+
+=====================================================================
+05_cache
+=====================================================================
+
+Evidence item: Cache-Control, ETag and 304 (direct and through the edge)
+File: 05_cache/cache-control-and-304.txt
+Produced by: Puneet
+Command/filter: curl -i <url> ; curl -i -H 'If-None-Match: "phase1-B-v1"' <url>
+Expected result: 200 with Cache-Control max-age=60 and ETag, then 304 Not Modified with no body
+What it proves: freshness lifetime and validator-based revalidation work, also through nginx
+
+=====================================================================
+06_pcaps
+=====================================================================
+
+Evidence item: Packet capture (DNS, TCP, TLS, plain-HTTP backend hop)
+File: 06_pcaps/phase1-complete-flow.filtered.pcap   (sha256 in .sha256 file beside it)
+Produced by: Puneet
+Command/filter: capture on en0 while running dig + curl --tlsv1.2 --tls-max 1.2 -v ; filters in annotation sheet
+Expected result: DNS query/response, SYN/SYN-ACK/ACK, ClientHello, ServerHello, Certificate, ChangeCipherSpec visible
+What it proves: the full protocol flow at packet level
+
+Evidence item: Capture annotation sheet (frame numbers)
+File: ../wireshark/README.md
+Produced by: Puneet
+Command/filter: dns ; tcp.port == 50490 ; tls && tcp.port == 50490 ; tcp.port == 3002 ; tcp.port == 9443
+Expected result: DNS frames 1-4, TCP handshake 5-7, TLS 1.2 handshake 8-16, app data 18/29, backend hop 20-26
+What it proves: each required packet is identified with endpoints, ports and meaning
+
+Evidence item: Terminal transcript of the captured commands
+File: 06_pcaps/capture-terminal-transcript.txt
+Produced by: Puneet
+Command/filter: dig app.team67.test ; curl --tlsv1.2 --tls-max 1.2 -v ... ; curl -v ...
+Expected result: HTTP 200, X-Backend, Cache-Control, ETag for the same requests seen in the capture
+What it proves: the HTTP headers that are encrypted in the capture
+
+=====================================================================
+07_failures
+=====================================================================
+
+Evidence item: Failure 1 - wrong DNS server on client
+File: 07_failures/01-wrong-dns-server.txt (PENDING)
+Produced by: Nakul
+Command/filter: dig app.team67.test with a wrong resolver ; ping 10.3.1.179
+Expected result: lookup fails or times out; direct IP ping still works
+What it proves: the fault is at name resolution, not reachability
+
+Evidence item: Failure 2 - DNS record points to wrong IP
+File: 07_failures/02-wrong-dns-record.txt (PENDING)
+Produced by: Nakul
+Command/filter: dig app.team67.test ; curl -v https://app.team67.test:8443/api/status
+Expected result: dig succeeds with the wrong IP; HTTPS fails or reaches the wrong host
+What it proves: a successful DNS answer is not necessarily a correct one
+
+Evidence item: Failure 3 - one backend stopped
+File: 07_failures/03-one-backend-down.txt (PENDING)
+Produced by: Sudeshhna with Neelanshu or Puneet
+Command/filter: 8 repeated curl requests printing X-Backend
+Expected result: all requests succeed, only the surviving backend answers
+What it proves: nginx fails over to the remaining backend
+
+Evidence item: Failure 4 - both backends stopped
+File: 07_failures/04-both-backends-down.txt (PENDING)
+Produced by: Sudeshhna with Neelanshu and Puneet
+Command/filter: dig app.team67.test ; curl -v https://app.team67.test:8443/api/status
+Expected result: DNS and TLS succeed; HTTP 502 Bad Gateway
+What it proves: the edge is healthy and the fault is upstream of it
+
+Evidence item: Failure 5 - wrong destination port, before and after
+File: 07_failures/05-wrong-port-before-after.txt
+Produced by: Puneet
+Command/filter: dig ; ping -c 3 ; nc -vz app.team67.test 9443 ; curl -v ...:9443 ; then the same on 8443
+Expected result: DNS and ping succeed, 9443 refused, 8443 succeeds
+What it proves: a port mismatch is isolated from DNS and host reachability
+
+=====================================================================
+08_configs
+=====================================================================
+
+Evidence item: dnsmasq configuration
+File: ../dns/dnsmasq.conf
+Produced by: Nakul
+Command/filter: n/a
+Expected result: address=/app.team67.test/10.3.1.179 and address=/api.team67.test/10.3.1.179
+What it proves: how the private zone is defined
+
+Evidence item: nginx configuration
+File: ../nginx/nginx.conf
+Produced by: Sudeshhna
+Command/filter: nginx -t -c nginx.conf
+Expected result: upstream with 10.7.15.25:3001 and 10.7.21.130:3002; listen 8443 ssl
+What it proves: how TLS termination, proxying and load balancing are configured
+
+Evidence item: Backend source and launch instructions
+File: ../backend-a/ ; ../backend-b/
+Produced by: Neelanshu ; Puneet
+Command/filter: BACKEND_ID=A PORT=3001 python3 app.py ; BACKEND_ID=B PORT=3002 python3 app.py
+Expected result: listener on 0.0.0.0, identity header, caching headers
+What it proves: complete, reproducible backend code

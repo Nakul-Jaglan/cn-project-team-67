@@ -1,0 +1,45 @@
+=== DNS from Mac 4 via system resolver (Mac 1 = 10.7.17.54): Tue Oct  6 00:59:42 IST 2026 ===
+--- networksetup -getdnsservers ---
+10.7.17.54
+--- dig app.team67.test ---
+
+; <<>> DiG 9.10.6 <<>> app.team67.test
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 54802
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;app.team67.test.		IN	A
+
+;; ANSWER SECTION:
+app.team67.test.	0	IN	A	10.3.1.179
+
+;; Query time: 47 msec
+;; SERVER: 10.7.17.54#53(10.7.17.54)
+;; WHEN: Tue Oct 06 00:59:42 IST 2026
+;; MSG SIZE  rcvd: 60
+
+--- dig api.team67.test ---
+
+; <<>> DiG 9.10.6 <<>> api.team67.test
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 29125
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;api.team67.test.		IN	A
+
+;; ANSWER SECTION:
+api.team67.test.	0	IN	A	10.3.1.179
+
+;; Query time: 7 msec
+;; SERVER: 10.7.17.54#53(10.7.17.54)
+;; WHEN: Tue Oct 06 00:59:42 IST 2026
+;; MSG SIZE  rcvd: 60
+

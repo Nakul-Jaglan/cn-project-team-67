@@ -1,0 +1,11 @@
+Backend B listening on 0.0.0.0:3002
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 304 -
+[B] 10.3.1.179 - "GET /api/status HTTP/1.1" 200 -

@@ -1,0 +1,33 @@
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Private keys and signing material: NEVER commit.
+# Public certificates (*.crt) are intentionally tracked under tls/certs/.
+*.key
+*.pem
+*.p12
+*.pfx
+*.csr
+*.srl
+
+# Unfiltered packet captures (contain unrelated traffic from the capture host)
+evidence/06_pcaps/*.pcap
+evidence/06_pcaps/*.pcapng
+!evidence/06_pcaps/*.filtered.pcap
+
+# Runtime files
+*.log
+*.pid
+*.bak
+*.swp
+*~
+
+# Editors
+.vscode/
+.idea/
