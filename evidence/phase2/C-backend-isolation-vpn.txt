@@ -1,0 +1,81 @@
+Team 67 / Extension C backend isolation / Tailscale
+Client: Mac 1 (Nakul), 100.96.176.78
+2026-11-25 13:46:44 IST, before firewall test
+
+Direct http://100.91.79.59:3001/api/status
+HTTP/1.0 200 OK
+X-Backend: A
+
+Direct http://100.97.35.89:3002/api/status
+HTTP/1.0 200 OK
+X-Backend: B
+
+Via https://app.team67.test:8443/api/status, using the team CA
+Six HTTP/1.1 200 OK responses from 100.98.167.117, all with
+X-Edge: primary and ssl_verify_result=0. X-Backend: B A B A B A.
+
+Full Mac 1 direct checks before PF rules
+
+2026-11-25 13:58:48 IST
+$ curl -sS -v --connect-timeout 3 --max-time 8 http://100.91.79.59:3001/api/status
+*   Trying 100.91.79.59:3001...
+* Connected to 100.91.79.59 (100.91.79.59) port 3001
+> GET /api/status HTTP/1.1
+> Host: 100.91.79.59:3001
+> User-Agent: curl/8.7.1
+> Accept: */*
+>
+* Request completely sent off
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Server: BaseHTTP/0.6 Python/3.14.2
+< Date: Wed, 25 Nov 2026 08:28:48 GMT
+< Content-Type: application/json
+< X-Backend: A
+< Cache-Control: public, max-age=60
+< ETag: "phase1-A-v1"
+< Content-Length: 103
+<
+{ [103 bytes data]
+* Closing connection
+{
+  "service": "private-network-phase1",
+  "backend": "A",
+  "status": "ok",
+  "path": "/api/status"
+}
+[exit 0]
+
+2026-11-25 13:58:48 IST
+$ curl -sS -v --connect-timeout 3 --max-time 8 http://100.97.35.89:3002/api/status
+*   Trying 100.97.35.89:3002...
+* Connected to 100.97.35.89 (100.97.35.89) port 3002
+> GET /api/status HTTP/1.1
+> Host: 100.97.35.89:3002
+> User-Agent: curl/8.7.1
+> Accept: */*
+>
+* Request completely sent off
+* HTTP 1.0, assume close after body
+< HTTP/1.0 200 OK
+< Server: BaseHTTP/0.6 Python/3.12.4
+< Date: Wed, 25 Nov 2026 08:28:48 GMT
+< Content-Type: application/json
+< X-Backend: B
+< Cache-Control: public, max-age=60
+< ETag: "phase1-B-v1"
+< Content-Length: 103
+<
+{ [103 bytes data]
+* Closing connection
+{
+  "service": "private-network-phase1",
+  "backend": "B",
+  "status": "ok",
+  "path": "/api/status"
+}
+[exit 0]
+
+Pending: approved PF setup on Mac 3, followed by firewall-on and rollback
+captures from Mac 1 and Mac 2. Extension C permits direct backend access
+from Mac 2 only. The standby check is outside the firewall-on window.

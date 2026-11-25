@@ -2,6 +2,7 @@ PHASE 1 EVIDENCE INDEX - Private Network Service Platform - Team 67
 Maintained by: Puneet (Mac 4)
 Session: 2026-10-05 / 2026-10-06 (IST)
 Paths are relative to this evidence/ folder unless they start with ../
+For the VPN session, topology and updated results, see ../docs/phase2-report.md.
 
 Addresses: DNS Mac 1 = 10.7.17.54 | Edge Mac 2 = 10.3.1.179 | Backend A Mac 3 = 10.7.15.25 | Backend B Mac 4 = 10.7.21.130
 Names: app.team67.test, api.team67.test -> 10.3.1.179 | HTTPS port 8443
@@ -65,7 +66,7 @@ Expected result: listening on 0.0.0.0:3002; requests arriving from 10.3.1.179
 What it proves: requests reach B from the nginx edge, not from the client directly
 
 Evidence item: Backend A local and remote tests
-File: 03_backends/backend-A-local-and-remote.txt (PENDING)
+Files: 03_backends/backend-A-local.txt (local); phase2/C-backend-isolation-vpn.txt (remote, Mac 1 on VPN)
 Produced by: Neelanshu
 Command/filter: curl -sS -D - http://10.7.15.25:3001/api/status ; nc -vz 10.7.15.25 3001
 Expected result: 200 OK, X-Backend: A, JSON backend=A, TCP port open
@@ -151,14 +152,14 @@ Expected result: dig succeeds with the wrong IP; HTTPS fails or reaches the wron
 What it proves: a successful DNS answer is not necessarily a correct one
 
 Evidence item: Failure 3 - one backend stopped
-File: 07_failures/03-one-backend-down.txt (PENDING)
+File: phase2/D-backend-failover-vpn.txt (VPN session)
 Produced by: Sudeshhna with Neelanshu or Puneet
 Command/filter: 8 repeated curl requests printing X-Backend
 Expected result: all requests succeed, only the surviving backend answers
 What it proves: nginx fails over to the remaining backend
 
 Evidence item: Failure 4 - both backends stopped
-File: 07_failures/04-both-backends-down.txt (PENDING)
+File: phase2/phase1-both-backends-down-vpn.txt (VPN session)
 Produced by: Sudeshhna with Neelanshu and Puneet
 Command/filter: dig app.team67.test ; curl -v https://app.team67.test:8443/api/status
 Expected result: DNS and TLS succeed; HTTP 502 Bad Gateway

@@ -1,0 +1,88 @@
+Team 67 / Extension A / 25 Nov 2026 IST
+Primary DNS: Mac 1, 100.96.176.78#53
+Backup DNS: Mac 4, 100.97.35.89#53
+Test client: Mac 3, 100.91.79.59
+Primary HTTPS edge: Mac 2, 100.98.167.117:8443
+
+02:16:09, before (reported by Neelanshu)
+Direct queries to both DNS servers returned 100.98.167.117.
+
+02:19:22, DNS service outage (reported by Neelanshu)
+Mac 1 remained pingable during the earlier outage. With Mac 1 DNS
+stopped and client DNS cache flushed, plain dig via Tailscale's
+100.100.100.100 returned app.team67.test A 100.98.167.117, TTL 30.
+Curl by hostname verified the team certificate and returned HTTP 200,
+X-Backend: A, X-Edge: primary. Direct Mac 1 DNS timed out; direct Mac 4
+DNS answered. On Mac 1 at 02:19:19, the primary process was absent,
+direct primary DNS timed out, direct backup DNS answered, and curl by
+name returned a verified HTTP 200 (see vpn-preflight-2026-11-25.txt).
+02:21:25, without another flush, Mac 3 reported the same DNS answer and
+verified HTTP 200 with X-Backend: B and X-Edge: primary.
+
+02:36:03, separate whole-host outage (selected lines from Mac 3 transcript)
+Mac 3 reported that Mac 1 was offline in Tailscale and no longer answered
+ping. No cache flush was done in this run. Mac 3 ran the normal DNS lookup
+and curl before asking the two resolvers directly.
+
+$ dig app.team67.test +time=5 +tries=1
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 20814
+app.team67.test.  30  IN  A  100.98.167.117
+;; Query time: 124 msec
+;; SERVER: 100.100.100.100#53(100.100.100.100)
+;; WHEN: Wed Nov 25 02:36:03 IST 2026
+
+$ curl -v --cacert tls/certs/phase1-ca.crt https://app.team67.test:8443/api/status
+* Connected to app.team67.test (100.98.167.117) port 8443
+*  SSL certificate verify ok.
+< HTTP/1.1 200 OK
+< X-Backend: A
+< X-Edge: primary
+
+$ dig @100.96.176.78 app.team67.test +time=3 +tries=1 +noall +answer +comments
+;; connection timed out; no servers could be reached
+
+$ dig @100.97.35.89 app.team67.test +time=3 +tries=1 +noall +answer +comments
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 59329
+app.team67.test.  30  IN  A  100.98.167.117
+
+Tailscale's resolver proxy is the SERVER displayed in plain dig. The
+backup dnsmasq log is needed to match the automatic query to Mac 4.
+Prefer the 02:19 service-only run for the demonstration. If older logging
+is unavailable, request 02:36 matches and distinguish lookups before the
+later direct dig using timestamp or DNS transaction details where present.
+
+12:22 IST: Mac 1 was online in Tailscale again, with primary dnsmasq still
+stopped and the direct query timing out. Mac 4 DNS still answered correctly.
+Mac 2 showed offline and its HTTPS connection timed out on this retest.
+
+Mac 4 backup resolver log (provided by Puneet)
+File logging started at 02:32:13 IST. There is no file log for the
+02:19 service-only outage. These lines match the 02:36 whole-host run.
+The automatic lookup and HTTPS command preceded the direct query.
+Nov 25 02:36:03 dnsmasq[41839]: query[A] app.team67.test from 100.91.79.59
+Nov 25 02:36:03 dnsmasq[41839]: /Users/puneet/cn-phase2/team67.hosts app.team67.test is 100.98.167.117
+Nov 25 02:36:03 dnsmasq[41839]: query[A] app.team67.test from 100.91.79.59
+Nov 25 02:36:03 dnsmasq[41839]: /Users/puneet/cn-phase2/team67.hosts app.team67.test is 100.98.167.117
+Nov 25 02:36:03 dnsmasq[41839]: query[AAAA] app.team67.test from 100.91.79.59
+Nov 25 02:36:03 dnsmasq[41839]: config app.team67.test is NODATA-IPv6
+Nov 25 02:36:07 dnsmasq[41839]: query[A] app.team67.test from 100.91.79.59
+Nov 25 02:36:07 dnsmasq[41839]: /Users/puneet/cn-phase2/team67.hosts app.team67.test is 100.98.167.117
+
+12:30:50-12:30:51 IST, primary DNS restored (client transcript from Mac 3)
+Direct primary: SERVER 100.96.176.78#53, NOERROR, 100.98.167.117, TTL 30.
+Normal query: SERVER 100.100.100.100#53, NOERROR, same address and TTL.
+Direct backup: SERVER 100.97.35.89#53, NOERROR, same address and TTL.
+HTTPS: hostname resolved correctly; TCP connect timed out while the edge
+Mac was offline. This check verified DNS recovery only.
+
+12:46:18 IST, primary edge access log (reported by Sudeshhna)
+client=100.91.79.59 host=app.team67.test GET /api/status status=200 upstream=100.97.35.89:3002
+client=100.91.79.59 host=app.team67.test GET /api/status status=200 upstream=100.91.79.59:3001
+Mac 2 reported nginx listening on 8443 at 12:47:21 IST.
+
+12:51:02 IST, recovery verified from Mac 1
+Direct primary and backup each returned app.team67.test A 100.98.167.117,
+TTL 30. macOS resolved the app to the same address. Curl by hostname
+verified its certificate and returned HTTP 200, X-Backend: B and
+X-Edge: primary. Standby HTTPS also verified and returned HTTP 200 when
+tested with its explicit VPN IP, 100.91.79.59, using --resolve.

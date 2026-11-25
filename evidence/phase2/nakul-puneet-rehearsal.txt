@@ -1,0 +1,95 @@
+Team 67 / two-Mac rehearsal preflight / 24 Nov 2026 IST
+Mac 1 (Nakul), observed: 10.7.26.120 on en0, mask 255.255.224.0, gateway 10.7.0.1.
+Mac 4 (Puneet), reported by owner: 10.7.18.80 on en0, same mask and gateway.
+
+Mac 1 -> Mac 4: ping -c 4 -W 1000 10.7.18.80
+4 packets transmitted, 4 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 5.183/16.017/46.753/17.749 ms
+
+Mac 1 -> Mac 4: dig @10.7.18.80 dnscheck.team67.test A +time=2 +tries=1
+;; connection timed out; no servers could be reached
+
+Mac 1 port 53 before switching to the shared record, 23:56:58 IST:
+dnscheck.team67.test.  30  IN  A  10.7.26.120
+;; SERVER: 10.7.26.120#53(10.7.26.120)
+
+Next: restart Mac 1 using phase2/dns/rehearsal.hosts so both return 10.7.18.80.
+Pending: reverse ping, queries from the opposite Mac in both directions, and outage rehearsal.
+
+25 Nov 2026, 00:00 IST follow-up:
+Mac 1's previous project dnsmasq (PID 59527) still answered on port 53
+with the old test record (10.7.26.120). The replacement could not bind.
+Mac 4 was reachable on port 53 and returned NXDOMAIN for dnscheck.team67.test.
+;; ->>HEADER<<- opcode: QUERY, status: NXDOMAIN, id: 31116
+;; SERVER: 10.7.18.80#53(10.7.18.80)
+Pending: switch Mac 1 to the shared hosts file and load the same record on Mac 4.
+
+25 Nov 2026, 00:04:12 IST: Mac 1 queried Mac 4 directly on UDP port 53.
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 63856
+dnscheck.team67.test.  30  IN  A  10.7.18.80
+;; SERVER: 10.7.18.80#53(10.7.18.80)
+Mac 1 still returned NXDOMAIN from the previous process (PID 60187),
+which could not read the Desktop hosts file. A readable runtime copy
+was prepared for the next launch. Mac 4 -> Mac 1 verification is pending.
+
+25 Nov 2026, 00:04:58 IST: both resolvers queried from Mac 1.
+$ dig @10.7.26.120 dnscheck.team67.test A
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 4890
+dnscheck.team67.test.  30  IN  A  10.7.18.80
+;; SERVER: 10.7.26.120#53(10.7.26.120)
+
+$ dig @10.7.18.80 dnscheck.team67.test A
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 33883
+dnscheck.team67.test.  30  IN  A  10.7.18.80
+;; SERVER: 10.7.18.80#53(10.7.18.80)
+
+Mac 1 loaded a readable runtime copy of the rehearsal hosts file.
+Pending: Mac 4 -> Mac 1 query, then one-resolver outage rehearsal.
+
+25 Nov 2026, 00:06:13 IST: Mac 4 (Puneet) queried Mac 1.
+Transcript provided by Puneet:
+; <<>> DiG 9.10.6 <<>> @10.7.26.120 dnscheck.team67.test
+; (1 server found)
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 42984
+;; flags: qr aa rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 1232
+;; QUESTION SECTION:
+;dnscheck.team67.test.  IN  A
+
+;; ANSWER SECTION:
+dnscheck.team67.test.  30  IN  A  10.7.18.80
+
+;; Query time: 6 msec
+;; SERVER: 10.7.26.120#53(10.7.26.120)
+;; WHEN: Wed Nov 25 00:06:13 IST 2026
+;; MSG SIZE  rcvd: 65
+
+Direct DNS queries passed in both directions. Primary outage and recovery
+are the next rehearsal checks. Automatic client failover remains a separate test.
+
+25 Nov 2026, 00:14:29 IST: primary outage, reported by Nakul.
+Mac 1's team dnsmasq (PID 60532) was stopped with sudo kill -TERM 60532.
+
+$ dig @10.7.26.120 dnscheck.team67.test +time=2 +tries=1
+;; connection timed out; no servers could be reached
+
+$ dig @10.7.18.80 dnscheck.team67.test +time=2 +tries=1
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 57337
+dnscheck.team67.test.  30  IN  A  10.7.18.80
+;; Query time: 34 msec
+;; SERVER: 10.7.18.80#53(10.7.18.80)
+;; WHEN: Wed Nov 25 00:14:29 IST 2026
+
+Backup availability during primary downtime is verified with a direct query.
+
+25 Nov 2026, 00:16:23 IST: primary recovery verified from Mac 1.
+$ dig @10.7.26.120 dnscheck.team67.test A +time=1 +tries=1 +noall +answer +stats
+dnscheck.team67.test.  30  IN  A  10.7.18.80
+;; Query time: 0 msec
+;; SERVER: 10.7.26.120#53(10.7.26.120)
+
+Two-Mac rehearsal complete. Final automatic client failover remains pending.

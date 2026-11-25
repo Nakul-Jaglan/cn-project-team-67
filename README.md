@@ -1,10 +1,10 @@
 # Private Network Service Platform — Team 67
 
-Computer Networks project, Phase 1: *Build and Observe*.
+Computer Networks course project. [Phase 2 report and current topology](docs/phase2-report.md) · [Live presentation checklist](docs/phase2-demo.md)
 
 A client resolves `app.team67.test` through the team's own DNS server, connects to nginx over trusted HTTPS, and receives responses load-balanced across two HTTP backends. Every layer (DNS, TCP, TLS, HTTP, caching, load balancing) is backed by saved evidence.
 
-## Team and machines
+## Phase 1 team and machines
 
 | Machine | Owner | Role | IP | Service port |
 |---|---|---|---|---|
@@ -75,15 +75,19 @@ evidence/     Numbered evidence folder with INDEX.txt
 | Requirement | Status | Where |
 |---|---|---|
 | Private DNS resolves both names to the edge | Done | [evidence/02_dns](evidence/02_dns) |
-| Two backends reachable over the LAN | B done, A evidence pending | [evidence/03_backends](evidence/03_backends) |
+| Two backends reachable | B verified on the original LAN; both verified on the Phase 2 VPN | [Phase 1 backend evidence](evidence/03_backends) and [Phase 2 direct checks](evidence/phase2/C-backend-isolation-vpn.txt) |
 | Trusted HTTPS through nginx (no `-k`) | Done | [evidence/04_nginx_tls](evidence/04_nginx_tls) |
 | Round-robin load balancing | Done | [evidence/04_nginx_tls](evidence/04_nginx_tls) |
 | Cache-Control + ETag + 304 | Done | [evidence/05_cache](evidence/05_cache) |
 | DNS / TCP / TLS packet capture, annotated | Done | [wireshark/README.md](wireshark/README.md) |
-| Five failure demonstrations | 1 of 5 saved | [docs/failure-demos.md](docs/failure-demos.md) |
-| LAN inventory and reachability | Pending | [evidence/01_lan](evidence/01_lan) |
+| Five failure demonstrations | Wrong port, one backend down, and both backends down recorded; two DNS faults pending | [Failure evidence](docs/failure-demos.md) |
+| Inventory and pairwise reachability | VPN inventory and Mac 1 pings recorded; full matrix pending | [Phase 2 inventory](docs/phase2-report.md#what-changed-from-phase-1) and [Mac 1 ping evidence](evidence/phase2/vpn-mac1-ping.txt) |
 
 Full requirement-to-file mapping: [evidence/INDEX.txt](evidence/INDEX.txt) and [docs/demo-evidence.md](docs/demo-evidence.md).
+
+## Phase 2 remote demo
+
+Phase 2 connects all four Macs through a private Tailscale network. The app URL is `https://app.team67.test:8443/api/status` from the team VPN. The [Phase 2 DNS runbook](phase2/dns/README.md) covers setup and rollback. The [nginx templates](phase2/nginx/README.md) cover both edges. The [report](docs/phase2-report.md#phase-2-extensions) links to the observed results and identifies the remaining tests.
 
 ## Security notes
 

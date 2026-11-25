@@ -1,0 +1,94 @@
+=== Backend A local test: Wed Nov 25 00:12:07 IST 2026 ===
+Source machine: Mac 3 (Neelanshu)
+Network: Mac 3's own Wi-Fi, en0 = 192.168.0.199. Not the integration LAN, so only local checks are valid here.
+Launch: BACKEND_ID=A PORT=3001 python3 backend-a/app.py
+
+$ lsof -nP -iTCP:3001 -sTCP:LISTEN
+COMMAND   PID       USER   FD   TYPE             DEVICE SIZE/OFF NODE NAME
+Python  24488 neelanshu.    3u  IPv4 0x1d0690903359707d      0t0  TCP *:3001 (LISTEN)
+[exit 0]
+
+$ curl -sS -i http://127.0.0.1:3001/
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.14.2
+Date: Tue, 24 Nov 2026 18:42:08 GMT
+Content-Type: application/json
+X-Backend: A
+Cache-Control: public, max-age=60
+ETag: "phase1-A-v1"
+Content-Length: 93
+
+{
+  "service": "private-network-phase1",
+  "backend": "A",
+  "status": "ok",
+  "path": "/"
+}
+[exit 0]
+
+$ curl -sS -i http://127.0.0.1:3001/api/status
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.14.2
+Date: Tue, 24 Nov 2026 18:42:09 GMT
+Content-Type: application/json
+X-Backend: A
+Cache-Control: public, max-age=60
+ETag: "phase1-A-v1"
+Content-Length: 103
+
+{
+  "service": "private-network-phase1",
+  "backend": "A",
+  "status": "ok",
+  "path": "/api/status"
+}
+[exit 0]
+
+# HEAD through curl -I
+$ curl -sS -I http://127.0.0.1:3001/api/status
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.14.2
+Date: Tue, 24 Nov 2026 18:42:09 GMT
+X-Backend: A
+Cache-Control: public, max-age=60
+ETag: "phase1-A-v1"
+
+[exit 0]
+
+$ curl -sS -i -H If-None-Match: "phase1-A-v1" http://127.0.0.1:3001/api/status
+HTTP/1.0 304 Not Modified
+Server: BaseHTTP/0.6 Python/3.14.2
+Date: Tue, 24 Nov 2026 18:42:09 GMT
+X-Backend: A
+Cache-Control: public, max-age=60
+ETag: "phase1-A-v1"
+
+[exit 0]
+
+$ curl -sS -o /dev/null -w HTTP %{http_code}
+ http://127.0.0.1:3001/does-not-exist
+HTTP 404
+[exit 0]
+
+# Same Mac, LAN address: shows the listener is not bound to 127.0.0.1 only
+$ curl -sS --connect-timeout 3 -i http://192.168.0.199:3001/api/status
+HTTP/1.0 200 OK
+Server: BaseHTTP/0.6 Python/3.14.2
+Date: Tue, 24 Nov 2026 18:42:16 GMT
+Content-Type: application/json
+X-Backend: A
+Cache-Control: public, max-age=60
+ETag: "phase1-A-v1"
+Content-Length: 103
+
+{
+  "service": "private-network-phase1",
+  "backend": "A",
+  "status": "ok",
+  "path": "/api/status"
+}
+[exit 0]
+
+$ nc -vz 192.168.0.199 3001
+192.168.0.199 3001 (redwood-broker) open
+[exit 0]

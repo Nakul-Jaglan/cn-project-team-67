@@ -1,0 +1,51 @@
+# Phase 2 primary edge on Mac 2. See README.md for certificate paths.
+worker_processes 1;
+pid /tmp/cn-phase2-nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    log_format upstream_trace '$time_iso8601 client=$remote_addr host=$host '
+                              '"$request" status=$status upstream=$upstream_addr '
+                              'upstream_status=$upstream_status rt=$request_time';
+    access_log /tmp/cn-phase2-nginx-access.log upstream_trace;
+    error_log /tmp/cn-phase2-nginx-error.log info;
+
+    upstream phase1_backends {
+        server 100.91.79.59:3001 max_fails=1 fail_timeout=5s;
+        server 100.97.35.89:3002 max_fails=1 fail_timeout=5s;
+
+        keepalive 8;
+    }
+
+    server {
+        listen 8443 ssl;
+
+        server_name app.team67.test api.team67.test;
+
+        ssl_certificate "@PRIMARY_CERT@";
+        ssl_certificate_key "@PRIMARY_KEY@";
+
+        ssl_protocols TLSv1.2 TLSv1.3;
+        add_header X-Edge primary always;
+
+        location / {
+            proxy_pass http://phase1_backends;
+            proxy_http_version 1.1;
+
+            proxy_set_header Host $host;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto https;
+
+            proxy_connect_timeout 2s;
+            proxy_read_timeout 10s;
+
+            proxy_next_upstream
+                error timeout http_502 http_503 http_504;
+
+            proxy_next_upstream_tries 2;
+        }
+    }
+}

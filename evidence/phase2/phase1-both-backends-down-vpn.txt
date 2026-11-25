@@ -1,0 +1,178 @@
+Team 67 / Phase 1 both-backends-down fault / 25 Nov 2026 IST
+Mac 4 confirmed B stopped at 13:27:54. Mac 3 sent A's stop signal at
+13:28:56 and confirmed that its port was free at 13:28:57.
+Mac 3 reported 6/6 verified HTTPS 502 responses on each edge.
+Mac 2 nginx recorded refused connections to A and B and status=502,
+upstream_status=502, 502. Both resolvers and both edges stayed running.
+
+Independent capture from Mac 1, 100.96.176.78, 13:39 IST
+$ curl -sS -v --connect-timeout 3 --max-time 7 --cacert tls/certs/phase1-ca.crt https://app.team67.test:8443/api/status
+2026-11-25 13:39:01 IST
+* Host app.team67.test:8443 was resolved.
+* IPv6: (none)
+* IPv4: 100.98.167.117
+*   Trying 100.98.167.117:8443...
+* Connected to app.team67.test (100.98.167.117) port 8443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+} [320 bytes data]
+*  CAfile: tls/certs/phase1-ca.crt
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* (304) (IN), TLS handshake, Unknown (8):
+{ [53 bytes data]
+* (304) (IN), TLS handshake, Certificate (11):
+{ [1150 bytes data]
+* (304) (IN), TLS handshake, CERT verify (15):
+{ [264 bytes data]
+* (304) (IN), TLS handshake, Finished (20):
+{ [36 bytes data]
+* (304) (OUT), TLS handshake, Finished (20):
+} [36 bytes data]
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted http/1.1
+* Server certificate:
+*  subject: CN=app.team67.test
+*  start date: Oct  5 16:23:57 2026 GMT
+*  expire date: Oct  5 16:23:57 2027 GMT
+*  subjectAltName: host "app.team67.test" matched cert's "app.team67.test"
+*  issuer: CN=Team67 Phase1 Local CA
+*  SSL certificate verify ok.
+* using HTTP/1.x
+> GET /api/status HTTP/1.1
+> Host: app.team67.test:8443
+> User-Agent: curl/8.7.1
+> Accept: */*
+>
+* Request completely sent off
+< HTTP/1.1 502 Bad Gateway
+< Server: nginx/1.31.6
+< Date: Wed, 25 Nov 2026 08:09:02 GMT
+< Content-Type: text/html
+< Content-Length: 157
+< Connection: keep-alive
+< X-Edge: primary
+<
+{ [157 bytes data]
+* Connection #0 to host app.team67.test left intact
+<html>
+<head><title>502 Bad Gateway</title></head>
+<body>
+<center><h1>502 Bad Gateway</h1></center>
+<hr><center>nginx/1.31.6</center>
+</body>
+</html>
+
+Standby diagnostic (curl with --resolve app.team67.test:8443:100.91.79.59)
+* Connected to app.team67.test (100.91.79.59) port 8443
+*  SSL certificate verify ok.
+< HTTP/1.1 502 Bad Gateway
+< X-Edge: standby
+
+Direct queries to both resolvers and the automatic system lookup
+
+; <<>> DiG 9.10.6 <<>> @100.96.176.78 app.team67.test A +time=1 +tries=1 +noall +answer +stats
+; (1 server found)
+;; global options: +cmd
+app.team67.test.	30	IN	A	100.98.167.117
+;; Query time: 0 msec
+;; SERVER: 100.96.176.78#53(100.96.176.78)
+;; WHEN: Wed Nov 25 13:39:01 IST 2026
+;; MSG SIZE  rcvd: 60
+
+
+; <<>> DiG 9.10.6 <<>> @100.97.35.89 app.team67.test A +time=1 +tries=1 +noall +answer +stats
+; (1 server found)
+;; global options: +cmd
+app.team67.test.	30	IN	A	100.98.167.117
+;; Query time: 546 msec
+;; SERVER: 100.97.35.89#53(100.97.35.89)
+;; WHEN: Wed Nov 25 13:39:02 IST 2026
+;; MSG SIZE  rcvd: 60
+
+name: app.team67.test
+ip_address: 100.98.167.117
+
+Expected effect observed: DNS and verified TLS work while nginx returns
+502 because neither upstream is available.
+
+Recovery, 25 Nov 2026 IST
+Mac 3 confirmed port 3001 listening at 13:40:27. Mac 4 confirmed port 3002
+listening and returning HTTP 200 at 13:40:47. Mac 3 verified both direct
+backends at 13:40:48 and collected six verified HTTPS 200s on each edge,
+with A and B appearing on both. Mac 2 separately recorded six HTTPS 200s
+on the primary at 13:40:58–59. The printed `X-Backend` sequence was
+A B A B A A. Sudeshhna confirmed that the 3 A / 3 B summary came from
+a second batch of six requests.
+
+Mac 1 independent recovery check, 13:46:44 IST
+Direct 100.91.79.59:3001: HTTP/1.0 200 OK, X-Backend: A
+Direct 100.97.35.89:3002: HTTP/1.0 200 OK, X-Backend: B
+Six HTTPS requests by name to https://app.team67.test:8443/api/status
+all returned HTTP/1.1 200 OK, X-Edge: primary, remote_ip=100.98.167.117,
+and ssl_verify_result=0 with the team CA. X-Backend: B A B A B A.
+
+Mac 1 standby diagnostic, 13:46:54 IST, using --resolve to 100.91.79.59:
+HTTP/1.1 200 OK, X-Edge: standby, X-Backend: A, ssl_verify_result=0.
+
+Full Mac 1 recovery transcript by name
+$ curl -sS -v --connect-timeout 3 --max-time 8 --cacert tls/certs/phase1-ca.crt https://app.team67.test:8443/api/status
+2026-11-25 13:47:29 IST
+* Host app.team67.test:8443 was resolved.
+* IPv6: (none)
+* IPv4: 100.98.167.117
+*   Trying 100.98.167.117:8443...
+* Connected to app.team67.test (100.98.167.117) port 8443
+* ALPN: curl offers h2,http/1.1
+* (304) (OUT), TLS handshake, Client hello (1):
+} [320 bytes data]
+*  CAfile: tls/certs/phase1-ca.crt
+*  CApath: none
+* (304) (IN), TLS handshake, Server hello (2):
+{ [122 bytes data]
+* (304) (IN), TLS handshake, Unknown (8):
+{ [53 bytes data]
+* (304) (IN), TLS handshake, Certificate (11):
+{ [1150 bytes data]
+* (304) (IN), TLS handshake, CERT verify (15):
+{ [264 bytes data]
+* (304) (IN), TLS handshake, Finished (20):
+{ [36 bytes data]
+* (304) (OUT), TLS handshake, Finished (20):
+} [36 bytes data]
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+* ALPN: server accepted http/1.1
+* Server certificate:
+*  subject: CN=app.team67.test
+*  start date: Oct  5 16:23:57 2026 GMT
+*  expire date: Oct  5 16:23:57 2027 GMT
+*  subjectAltName: host "app.team67.test" matched cert's "app.team67.test"
+*  issuer: CN=Team67 Phase1 Local CA
+*  SSL certificate verify ok.
+* using HTTP/1.x
+> GET /api/status HTTP/1.1
+> Host: app.team67.test:8443
+> User-Agent: curl/8.7.1
+> Accept: */*
+>
+* Request completely sent off
+< HTTP/1.1 200 OK
+< Server: nginx/1.31.6
+< Date: Wed, 25 Nov 2026 08:17:29 GMT
+< Content-Type: application/json
+< Content-Length: 103
+< Connection: keep-alive
+< X-Backend: A
+< Cache-Control: public, max-age=60
+< ETag: "phase1-A-v1"
+< X-Edge: primary
+<
+{ [103 bytes data]
+* Connection #0 to host app.team67.test left intact
+{
+  "service": "private-network-phase1",
+  "backend": "A",
+  "status": "ok",
+  "path": "/api/status"
+}

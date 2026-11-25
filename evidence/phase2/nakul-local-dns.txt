@@ -1,0 +1,40 @@
+Team 67 / Nakul / Mac 1 DNS rehearsal
+Started 2026-11-24 23:52:30 IST
+Wi-Fi: en0, IPv4 10.7.26.120, mask 255.255.224.0 (/19), router 10.7.0.1
+Scope: one Mac. Rehearsal ports 1053 (source) and 1054 (test cache).
+The 192.0.2.x addresses are documentation values used solely for DNS lookups.
+
+Wi-Fi IP query over UDP (same Mac)
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 64359
+dnscheck.team67.test.  30  IN  A  10.7.26.120
+;; SERVER: 10.7.26.120#1053(10.7.26.120)
+
+Wi-Fi IP query over TCP (same Mac)
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 38893
+dnscheck.team67.test.  30  IN  A  10.7.26.120
+;; SERVER: 10.7.26.120#1053(10.7.26.120)
+
+Source before change / dig @127.0.0.1 -p 1053 app.team67.test A
+app.team67.test.  30  IN  A  192.0.2.10
+
+Cache primed / dig @127.0.0.1 -p 1054 app.team67.test A
+app.team67.test.  30  IN  A  192.0.2.10
+
+Source after updating addn-hosts and sending SIGHUP / port 1053
+app.team67.test.  30  IN  A  192.0.2.20
+
+Cache retains old address / port 1054
+app.team67.test.  29  IN  A  192.0.2.10
+
+Cache after TTL expiry / port 1054
+app.team67.test.  30  IN  A  192.0.2.20
+
+Before manual cache clear, after restoring source to .10 / port 1054
+app.team67.test.  30  IN  A  192.0.2.20
+
+After SIGHUP to the separate test cache / port 1054
+app.team67.test.  30  IN  A  192.0.2.10
+
+Rehearsal processes stopped. System DNS settings unchanged.
+Pending live evidence: client on Puneet's Mac, port 53, backup failover,
+full LAN inventory and ping matrix, faults, and a trusted HTTPS edge cutover.

@@ -6,8 +6,8 @@ Rule: change one variable at a time, record the symptom, restore the known-good 
 |---|---|---|---|---|---|
 | 1 | Wrong DNS server on client | Nakul | `dig app.team67.test` times out or fails; `ping 10.3.1.179` still works | Restore DNS to `10.7.17.54`, flush cache | **Pending** — `evidence/07_failures/01-wrong-dns-server.txt` |
 | 2 | DNS record points to wrong IP | Nakul | `dig` succeeds but returns the wrong address; HTTPS fails or reaches the wrong host | Restore `address=/app.team67.test/10.3.1.179`, restart dnsmasq, flush cache | **Pending** — `evidence/07_failures/02-wrong-dns-record.txt` |
-| 3 | One backend stopped | Sudeshhna + backend owner | Repeated requests all succeed; only the surviving `X-Backend` value appears | Restart the backend; confirm A and B both return | **Pending** — `evidence/07_failures/03-one-backend-down.txt` |
-| 4 | Both backends stopped | Sudeshhna + both backend owners | DNS and TLS still succeed; HTTP status is `502 Bad Gateway` | Restart both backends | **Pending** — `evidence/07_failures/04-both-backends-down.txt` |
+| 3 | One backend stopped | Sudeshhna + backend owner | Repeated requests all succeed; only the surviving `X-Backend` value appears | Restart the backend; confirm A and B both return | **Saved on VPN** — [A down and restored](../evidence/phase2/D-backend-failover-vpn.txt) |
+| 4 | Both backends stopped | Sudeshhna + both backend owners | DNS and TLS still succeed; HTTP status is `502 Bad Gateway` | Restart both backends | **Saved on VPN** — [502 and recovery](../evidence/phase2/phase1-both-backends-down-vpn.txt) |
 | 5 | Wrong destination port | Puneet | DNS and ping succeed; TCP to 9443 is refused | Use the agreed port 8443 | **Saved** — [`05-wrong-port-before-after.txt`](../evidence/07_failures/05-wrong-port-before-after.txt) |
 
 ## 5. Wrong destination port (complete)
@@ -27,7 +27,7 @@ In the capture the refusal is a TCP RST from the edge (frames 71–74 in [`wires
 
 **Layer statement:** DNS returns the correct edge IP and the host answers ping, but TCP 9443 is closed, so the fault is after DNS and before TLS.
 
-## Commands for the pending demonstrations
+## Original LAN commands for reproducing the demonstrations
 
 Capture each with `script` or `| tee` so the timestamp, command and output are in one file.
 

@@ -1,0 +1,69 @@
+Team 67 / Extensions B and E / 25 Nov 2026 IST
+Primary edge: 100.98.167.117:8443. Standby edge: 100.91.79.59:8443.
+DNS servers: 100.96.176.78 and 100.97.35.89; both serve TTL 30.
+
+13:03:20-21 IST, Mac 1 before the switch
+Both DNS servers: app.team67.test. 30 IN A 100.98.167.117
+HTTPS by hostname, using the Team 67 CA: HTTP 200, X-Edge: primary,
+X-Backend: B, remote_ip=100.98.167.117.
+
+Standby reachability from Mac 1 before changing DNS:
+$ curl -v --cacert tls/certs/phase1-ca.crt --resolve app.team67.test:8443:100.91.79.59 https://app.team67.test:8443/api/status
+* Connected to app.team67.test (100.91.79.59) port 8443
+* SSL connection using TLSv1.3 / AEAD-CHACHA20-POLY1305-SHA256 / [blank] / UNDEF
+*  subjectAltName: host "app.team67.test" matched cert's "app.team67.test"
+*  SSL certificate verify ok.
+< HTTP/1.1 200 OK
+< X-Backend: A
+< X-Edge: standby
+
+The standby reachability check forced the address and is not the DNS-based
+cutover result. Both live resolvers remained on primary in this baseline.
+
+Observed cutover timeline, from team transcripts (IST)
+13:05:28 Mac 1 reloaded app to standby (reported by Mac 3 and Mac 2).
+13:05:31 Mac 3 plain dig gave standby, but a new HTTPS request reached
+         primary and returned 200. Direct DNS1 gave standby; DNS2 gave primary.
+13:05:33 Mac 2's watcher was on standby, HTTP 200.
+13:05:41 Mac 3 first reached standby, HTTP 200. Its HTTPS requests stayed
+         on standby afterward; plain DNS alternated while resolvers differed.
+13:07:08 Mac 4 reported reloading app to standby; Mac 3 first observed both
+         DNS servers agreeing at 13:07:10. Mac 3 reported HTTP 200 for all
+         110 watcher requests. API continued to use primary.
+13:07:49 Mac 3 checked both resolvers, normal DNS, and trusted standby HTTPS.
+13:11:16 Mac 1 verified standby by normal DNS, with certificate validation,
+         HTTP 200, X-Edge: standby, X-Backend: A, remote 100.91.79.59.
+         Full curl output: E-mac1-standby-by-name.txt. API reached primary.
+13:11:33 Mac 4 confirmed reachable again after one UDP timeout. Both UDP and
+         TCP queries returned app.team67.test A 100.91.79.59 with TTL 30.
+
+The resolvers disagreed for about 100 seconds because their reloads were
+staggered. Those inconsistent replies cannot be attributed to a single
+30-second client cache entry. The earlier isolated TTL test in
+nakul-local-dns.txt demonstrates expiry and manual refresh in a controlled
+cache. This capture demonstrates actual HTTPS cutover despite disagreement.
+
+Rollback verified (IST)
+13:13:15 Mac 1 restored its app record to 100.98.167.117 (Nakul).
+13:14:03 Mac 4 restored the same app record and reloaded (Puneet).
+13:15:00 Mac 1 queried both resolvers directly. Both app and api returned
+         100.98.167.117 with TTL 30 from both servers.
+13:15:00 Mac 1's normal HTTPS request to app.team67.test resolved to
+         100.98.167.117:8443, negotiated TLS 1.3, verified the certificate,
+         and returned HTTP 200, X-Edge: primary, X-Backend: B.
+
+Selected Mac 3 return-to-primary watcher rows (IST, supplied by Neelanshu)
+Time      DNS1            DNS2            Automatic       | HTTPS IP       Code Edge    Backend
+13:13:15  100.91.79.59    100.91.79.59    100.91.79.59    | 100.91.79.59   200  standby A
+13:13:17  100.98.167.117  none            100.98.167.117  | 100.91.79.59   200  standby B
+13:13:28  100.98.167.117  100.91.79.59    100.98.167.117  | 100.98.167.117 200  primary A
+13:14:06  100.98.167.117  100.98.167.117  100.98.167.117  | 100.98.167.117 200  primary B
+
+Mac 2 corroboration, supplied by Sudeshhna: the no-flush watcher
+returned HTTP 200 from primary at 13:05:28 and from standby at 13:05:33.
+The primary access log last showed Mac 3's app request before the move at
+13:05:38, continued to show api requests (including from Mac 1 and Mac 4),
+and again showed Mac 3's app request returning 200 at 13:13:29.
+
+For a clean live TTL measurement, keep both resolver changes in sync and
+record early flush separately from the no-flush watcher.

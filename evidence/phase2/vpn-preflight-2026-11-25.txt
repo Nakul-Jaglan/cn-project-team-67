@@ -1,0 +1,112 @@
+Team 67 / VPN preflight / 25 Nov 2026, 01:26-01:27 IST
+Mac 1: Tailscale running at 100.96.176.78, interface utun8 at time of test.
+Mac 4: 100.97.35.89 appeared online in the VPN peer list. Tailscale ping
+succeeded and regular ping returned 2/2. TCP 3002 accepted a connection;
+the HTTP status request timed out without response. DNS on 53 timed out.
+Mac 2: 100.123.159.55, reported. Tailscale ping reported no matching peer.
+Mac 3: 100.82.112.52, reported. Tailscale ping reported no matching peer.
+
+Local VPN DNS smoke check (Mac 1 querying its own VPN address on 1053):
+dnscheck.team67.test.  30  IN  A  100.97.35.89
+app.team67.test.       30  IN  A  100.123.159.55
+api.team67.test.       30  IN  A  100.123.159.55
+;; SERVER: 100.96.176.78#1053(100.96.176.78)
+Same results over UDP and TCP. Stopped port 1053 after the check.
+The app/api addresses are draft records until Mac 2 joins and is verified.
+Mac 1's prior Wi-Fi rehearsal resolver was left running on port 53.
+
+25 Nov 2026, 01:36 IST follow-up after client enrollment
+All three peers reported online and answered Tailscale ping from Mac 1.
+Mac 4 / Backend B and backup DNS: 100.97.35.89
+Mac 2 / primary edge: 100.98.167.117 (Mumbai relay during check)
+Mac 3 / Backend A and standby: 100.91.79.59 (Mumbai relay during check)
+
+The tested client did not receive HTTP responses from either backend, and
+verified-HTTPS probes could not connect to either edge on 8443. A direct
+query to Mac 4's VPN address on UDP 53 timed out.
+
+Staged both names at the new Mac 2 address and verified on Mac 1's VPN
+address with temporary port 1053, using UDP and TCP:
+app.team67.test.  30  IN  A  100.98.167.117
+api.team67.test.  30  IN  A  100.98.167.117
+;; SERVER: 100.96.176.78#1053(100.96.176.78)
+
+Port 1053 test stopped. Mac 1's Wi-Fi resolver was left running until the
+owner can authorize the port 53 switch. Team-wide DNS unchanged.
+
+25 Nov 2026, 01:53-01:54 IST, shared VPN baseline from Mac 1
+Primary DNS on 100.96.176.78#53 returned 100.98.167.117 with TTL 30
+for both app.team67.test and api.team67.test. Neelanshu reported receiving
+the same answers from Mac 3. Backup 100.97.35.89#53 answered app.team67.test
+once over UDP and once over TCP with that same IP and TTL at 01:53:17.
+
+Client Mac 1 tested the two edges using --resolve with the public team CA.
+Primary 100.98.167.117:8443: SAN matched app.team67.test, TLS 1.3, certificate
+verification succeeded, and six requests all returned HTTP 200 with
+X-Edge: primary and X-Backend A, B, A, B, A, B.
+Standby 100.91.79.59:8443: SAN matched, TLS 1.3, certificate verification
+succeeded, HTTP 200, X-Edge: standby, X-Backend: B.
+Sudeshhna reported direct HTTP 200 to each backend from Mac 2 and passing
+nginx -t. Neelanshu reported successful standby checks on both names.
+
+Backup liveness pending: at 01:54 a second set of requests to Mac 4 timed
+out on both UDP and TCP port 53 for both names. Tailscale ping and HTTP on
+Mac 4 port 3002 also timed out during the retry. Cause is unconfirmed.
+Unqualified DNS returned NXDOMAIN through 100.100.100.100. Scoped DNS was
+not enabled during this check. HTTPS probes with --resolve demonstrate
+edge reachability and TLS; a normal URL test still needs scoped DNS.
+
+25 Nov 2026, 02:07:41 IST, backup reachability retest from Mac 1
+Mac 4 returned 100.98.167.117 with TTL 30 for app and api over UDP,
+and for app over TCP. Replies came from 100.97.35.89#53 (7-16 ms).
+Mac 1 returned the same answers over UDP and TCP. Tailscale ping to
+Mac 4 replied in 5 ms. Puneet had previously sent a successful reverse
+ping (3/3) and a query to his own VPN listener at 02:06:53 IST.
+Pending: add the restricted team67.test resolvers and verify the app URL
+with system DNS, then test automatic backup selection from another Mac.
+
+25 Nov 2026, 02:11 IST, restricted DNS configured by Nakul
+Tailscale DNS is enabled on Mac 1. Its DNS status lists exactly the two
+project routes for team67.test: 100.96.176.78 and 100.97.35.89. No global
+Tailscale resolvers are configured. dig using Tailscale's 100.100.100.100
+returned app.team67.test with A 100.98.167.117, TTL 30.
+From the same Mac, normal system DNS resolved api.team67.test and curl
+verified its certificate, completed TLS 1.3, and returned HTTP 200,
+X-Edge: primary and X-Backend: B without --resolve. The OS hostname
+lookup for app.team67.test still failed despite a current positive
+dig answer. A cached earlier negative response is suspected, not proven.
+Pending: flush macOS resolver cache, verify normal app URL, and record
+automatic resolver recovery from a third Mac.
+
+25 Nov 2026, 02:13 IST, normal system DNS and application verification
+Nakul flushed the macOS DNS caches. The native DNS lookup returned
+100.98.167.117 for both app.team67.test and api.team67.test.
+Curl by both names, without --resolve or -k, verified the matching SAN
+and Team 67 CA, negotiated TLS 1.3, and returned HTTP 200 from the primary
+edge. The app returned X-Backend: A and the api returned X-Backend: B.
+Six subsequent requests by app.team67.test all returned HTTP 200 and
+X-Edge: primary, with X-Backend values A, B, A, B, A, B.
+Direct queries to primary 100.96.176.78#53 and backup 100.97.35.89#53
+each returned app.team67.test A 100.98.167.117, TTL 30.
+Pending: verify automatic DNS failover from Mac 3 while Mac 1 is stopped,
+then restart Mac 1 and verify recovery. Both resolvers were left running.
+
+25 Nov 2026, 02:14:38 IST, automatic failover rehearsal precheck
+All four VPN nodes appeared online. Direct queries returned
+100.98.167.117 (TTL 30) from both 100.96.176.78#53 and 100.97.35.89#53.
+A normal HTTPS request to app.team67.test:8443/api/status returned
+HTTP 200, X-Backend: A and X-Edge: primary. The project resolver was
+left running until the backup observer and independent client are ready.
+
+25 Nov 2026, 02:19:19 IST, project primary DNS down
+Mac 1's project dnsmasq was absent from the process list and a direct
+dig @100.96.176.78 app.team67.test timed out. A direct query to
+100.97.35.89#53 returned app.team67.test A 100.98.167.117, TTL 30.
+On Mac 1, curl by the normal app name connected to 100.98.167.117,
+verified the certificate, and returned HTTP 200, X-Backend: B,
+X-Edge: primary. Mac 1's HTTPS check is supplemental evidence;
+the independent client transcript and Mac 4 resolver log are pending.
+
+Follow-up: Mac 3's outage observations were received and summarized in
+A-dns-failover-vpn.txt, including the separate 02:36 whole-host outage.
+Mac 4 log correlation and primary DNS recovery remain pending.

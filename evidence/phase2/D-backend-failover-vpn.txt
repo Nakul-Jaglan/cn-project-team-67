@@ -1,0 +1,47 @@
+Team 67 / Extension D / Backend failover / 25 Nov 2026 IST
+Source: Mac 1, 100.96.176.78. Primary edge: Mac 2, 100.98.167.117:8443.
+Backend A: Mac 3, 100.91.79.59:3001. Backend B: Mac 4, 100.97.35.89:3002.
+
+Healthy baseline, 13:18:00-13:18:02 IST
+Each request ran from the repo root, using system DNS and the project CA:
+$ curl -fsS --connect-timeout 3 --max-time 8 --cacert tls/certs/phase1-ca.crt -D - -o /dev/null https://app.team67.test:8443/api/status
+
+Request  HTTP status      X-Backend  X-Edge
+1        HTTP/1.1 200 OK  A          primary
+2        HTTP/1.1 200 OK  B          primary
+3        HTTP/1.1 200 OK  A          primary
+4        HTTP/1.1 200 OK  B          primary
+5        HTTP/1.1 200 OK  A          primary
+6        HTTP/1.1 200 OK  B          primary
+
+A stopped, B running (times IST)
+13:19:13 Mac 3 sent the stop signal to Backend A. Mac 3 verified that
+port 3001 was free at 13:19:15. B, both resolvers and both edges stayed up.
+13:19:15-20 Mac 3 reported 6/6 verified HTTPS requests, 200, primary, B.
+13:19:19-20 Mac 2 reported 6/6 HTTPS requests, 200, primary, B.
+13:19:21 Mac 2 nginx logged connect() failed (61: Connection refused)
+for 100.91.79.59:3001 and temporarily disabled that upstream. Its access log:
+status=200 upstream=100.91.79.59:3001, 100.97.35.89:3002 upstream_status=502, 200
+This shows a failed attempt to A and a successful retry to B on one request.
+13:19:21-25 Mac 3 also reported six 200 responses from B via standby.
+
+Independent confirmation from Mac 1, 13:22:18-20 IST
+Direct A: curl exit 7; no HTTP response on 100.91.79.59:3001.
+Direct B: HTTP/1.0 200 OK, X-Backend: B on 100.97.35.89:3002.
+Six HTTPS requests by name to app.team67.test:8443/api/status each had:
+HTTP/1.1 200 OK, X-Backend: B, X-Edge: primary,
+remote_ip=100.98.167.117, ssl_verify_result=0.
+
+A restored, both serving again (IST)
+13:23:32 Mac 3 logged the restart. Port 3001 first listened at 13:23:33.
+13:23:33-38 Mac 3 reported direct HTTP 200 from both backends, and primary
+HTTPS 6/6 HTTP 200, verified TLS, backend sequence B B A B A B. The standby
+returned the same sequence at 13:23:39-43, also 6/6 HTTP 200.
+13:23:36 Mac 2's access log recorded a successful upstream request to A.
+13:23:44-45 Mac 2 recorded primary HTTP 200 responses from B A B A B A.
+13:26:26-28 independent Mac 1 confirmation by hostname: 6/6 HTTP 200,
+X-Edge: primary, remote_ip=100.98.167.117, ssl_verify_result=0 for all,
+and X-Backend values B A B A B A.
+
+Backend failover and recovery verified. nginx resumed using A without a
+reload. The both-down Phase 1 HTTP 502 test is a separate controlled fault.

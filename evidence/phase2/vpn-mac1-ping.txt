@@ -1,0 +1,42 @@
+Team 67 / Mac 1 (Nakul) / Tailscale reachability
+2026-11-25 13:58:48 IST
+Source: 100.96.176.78, route to Mac 2 on utun8
+
+Mac 1 to Mac 2 (Sudeshhna)
+$ ping -c 4 -t 7 100.98.167.117
+PING 100.98.167.117 (100.98.167.117): 56 data bytes
+64 bytes from 100.98.167.117: icmp_seq=0 ttl=64 time=123.853 ms
+64 bytes from 100.98.167.117: icmp_seq=1 ttl=64 time=60.471 ms
+64 bytes from 100.98.167.117: icmp_seq=2 ttl=64 time=102.722 ms
+64 bytes from 100.98.167.117: icmp_seq=3 ttl=64 time=60.197 ms
+
+--- 100.98.167.117 ping statistics ---
+4 packets transmitted, 4 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 60.197/86.811/123.853/27.511 ms
+[exit 0]
+
+Mac 1 to Mac 3 (Neelanshu)
+$ ping -c 4 -t 7 100.91.79.59
+PING 100.91.79.59 (100.91.79.59): 56 data bytes
+64 bytes from 100.91.79.59: icmp_seq=0 ttl=64 time=207.474 ms
+64 bytes from 100.91.79.59: icmp_seq=1 ttl=64 time=94.675 ms
+64 bytes from 100.91.79.59: icmp_seq=2 ttl=64 time=129.905 ms
+64 bytes from 100.91.79.59: icmp_seq=3 ttl=64 time=80.749 ms
+
+--- 100.91.79.59 ping statistics ---
+4 packets transmitted, 4 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 80.749/128.201/207.474/49.150 ms
+[exit 0]
+
+Mac 1 to Mac 4 (Puneet)
+$ ping -c 4 -t 7 100.97.35.89
+PING 100.97.35.89 (100.97.35.89): 56 data bytes
+64 bytes from 100.97.35.89: icmp_seq=0 ttl=64 time=35.523 ms
+64 bytes from 100.97.35.89: icmp_seq=1 ttl=64 time=7.756 ms
+64 bytes from 100.97.35.89: icmp_seq=2 ttl=64 time=6.541 ms
+64 bytes from 100.97.35.89: icmp_seq=3 ttl=64 time=6.708 ms
+
+--- 100.97.35.89 ping statistics ---
+4 packets transmitted, 4 packets received, 0.0% packet loss
+round-trip min/avg/max/stddev = 6.541/14.132/35.523/12.359 ms
+[exit 0]

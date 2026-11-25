@@ -1,0 +1,3 @@
+# Copy to a separate local file and replace EDGE_IP before starting.
+EDGE_IP app.team67.test
+EDGE_IP api.team67.test
